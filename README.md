@@ -5,31 +5,31 @@
 - #### Step 1: Brainstorm on your own.
 
 - Parser does not check if the comma is within a quotation. If it is, then the string should not be split along that comma.
-- Parser does not accept user input as to whether the first line of the CSV is the column headers. 
-- Parser does not allow the user to decide which format, string[][] or Person[], they want to store their results in.
+- Parser does not accept user input as to whether the first line of the CSV is a header row. 
+- Parser does not allow the user to decide which format, string[][] or T[], they want to store their results in.
 - Parser does not validate whether the data in the CSV is in the desired format (eg. “30” instead of “thirty”).
 
 - #### Step 2 and 3: Use an LLM to help expand your perspective.
 
-    Include a list of the top 4 enhancements or edge cases you think are most valuable to explore in the next week’s sprint. Label them clearly by category (extensibility vs. functionality), and include whether they came from you, the LLM, or both. Describe these using the User Story format—see below for a definition. 
+    Include a list of the top 4 enhancements or edge cases you think are most valuable to explore in the next week’s sprint. Label them clearly by category (extensibility vs. functionality), and include whether they came from you, the LLM, or both. Describe these using the User Story format — see below for a definition. 
 
     Include your notes from above: what were your initial ideas, what did the LLM suggest, and how did the results differ by prompt? What resonated with you, and what didn’t? (3-5 sentences.) 
 
-    Making sure that blank space in the CSV file is reflected in the resulting array (so it’s not ignored)
-    - From LLM
-    - functionality
-    Checking for commas within quotations
-    - From LLM and me
-    - functionality
-    Checking the length of each row to make sure it’s consistent with the header row
-    - From LLM
-    - functionality
-    Parser checking if user wants to include first line in resulting data
-    - From Me
-    - Extensibility
+    - Making sure that blank space in the CSV file is reflected in the resulting array (so it’s not ignored)
+        - From LLM
+        - functionality
+    - Checking for commas within quotations
+        - From LLM and me
+        - functionality
+    - Checking the length of each row to make sure it’s consistent with the header row
+        - From LLM
+        - functionality
+    - Parser checking if user wants to include first line in resulting data
+        - From Me
+        - Extensibility
 
     User Story
-    - “As a user, I can parse data from a CSV file so I can easily extract parts of this data to use in my research project.”
+    - “As a user, I can parse data from a CSV file so I can easily extract parts of this data to use in my research project, while being certain that this data is formatted correctly”
     - Acceptance Criteria:
         - Whenever the CSV file includes blank space/rows, that blank space is reflected in the output data so as to show where data may be missing
         - Whenever there are commas within quotations, those commas should be treated as a part of the data.
@@ -37,7 +37,7 @@
         - The user should decide whether the header row (which contains the column labels) should be included in the parsed data.
 
 
-    My initial observations on the current parser’s shortcomings were these: 1. Parser does not check if the comma is within a quotation, 2. Parser does not accept user input as to whether the first line of the CSV is the column headers, 3. Parser does not allow the user to decide which format, string[][] or Person[], they want to store their results in, 4. Parser does not validate whether the data in the CSV is in the desired format (eg. “30” instead of “thirty”).
+    My initial observations on the current parser’s shortcomings were these: 1. Parser does not check if the comma is within a quotation, 2. Parser does not accept user input as to whether the first line of the CSV is the column headers, 3. Parser does not allow the user to decide which format, string[][] or T[], they want to store their results in, 4. Parser does not validate whether the data in the CSV is in the desired format (eg. “30” instead of “thirty”).
 
     The LLM suggested some more niche edge cases I hadn’t thought of, including to check for residual line ending notation (/n), different delineation techniques that use semicolons instead of commas, consistency in the length of each row, and blank rows/spaces.
 
@@ -47,20 +47,25 @@
 
 
 ### Design Choices
-- 
+- My Primary design choice was choosing how to communicate to the caller that their CSV data was not able to be parsed according to the schema they chose. I chose to return an error as opposed to posting a message to the console, and the error message would include the line in the CSV file in which the error was detected, in addition to supplying the caller with the error message from zod's safeParse method. I thought this method of communicating to the caller would ensure that the caller would 1. recieve notice of the error directly and 2. supply them with sufficient information to fix what was causing the error.
 
 #### REFLECTION
 #### 1. Correctness
-- 
+Here are the criteria that would make a CSV parser correct
+- identifies format inconsistencies in the CSV data, including missing data fields, inconsistent row sizes, data type inconsistencies
+- clearly communicates these inconsistencies in the data to the caller, and details where the error occurred and why
+- can receive user input on what would make the parser "correct" for the user's purposes. This includes allowing the user to pass in a particular schema, or allowing them tailor whether a comma or a semicolon is used to demarcate separate data fields, for example. The point is that a "correct CSV parser" is different for each caller because everyone has different purposes for the parser.
 
 #### 2. Random, On-Demand Generation
-- 
+- Perhaps generating this data randomly would allow me to see just how many kinds of data types a CSV file can store, and make me aware of all the ways my parser, and zod, should accomodate these possibilities. This means that I should make sure my parser should just as easily a parse a number as it would a hex code, for example.
+- I would potentially encounter more formatting inconsistencies that are commonly present in CSV files. By exposing myself to these inconsistencies, I can formulate how to make my Parser more impervious to these kinds of CSV file quirks.
 
 #### 3. Overall experience, Bugs encountered and resolved
-- 
+- This assignment differed from other programming assignments because it was not really focused on building code, but imagining how a user would interact with this code. The focus was on user functionality, not on efficiency or runtime (though those criteria should be considered regardless).
+- The bugs I faced were primarily related to type intricacies. Particularly, I had trouble realizing that the return type of my parsing method also had to include Error, and not just string[][] and T[]. I fixed these kinds of bugs by hovering over the error line and seeing what was confusing TypeScript.
 
 #### Errors/Bugs:
-- I encountered some bugs related to correctly defining the output type of the Parser. I had to remember that Error is a valid output type, and I also had to remember that this error would be thrown right when the parser encounters a row that doesn't fit the schema, not when it's done parsing through all the CSV rows.
+- None, other than the bugs/uncertainties that I will address in the next sprint (commas within quotations, whether to include header row, other relevant CSV criteria that I talked about earlier in this README).
 
 #### Tests:
 I created a new testing file (basic-parser-improved.test.ts) for testing the improved CSVParser. I renamed the original testing file so that VSCode skips running it when I run "npm run test" in the terminal.
@@ -80,5 +85,6 @@ I have 3 CSV files.
 
 #### Total estimated time it took to complete project: 
 - 5 hrs
+
 #### Link to GitHub Repo:
-- 
+- https://github.com/cs0320-f25/typescript-csv-awu164
