@@ -1,5 +1,7 @@
 import * as fs from "fs";
 import * as readline from "readline";
+import { z, ZodType } from "zod";
+
 
 /**
  * This is a JSDoc comment. Similar to JavaDoc, it documents a public-facing
@@ -13,25 +15,55 @@ import * as readline from "readline";
  * 
  * @param path The path to the file being loaded.
  * @returns a "promise" to produce a 2-d array of cell values
+ * 
  */
-export async function parseCSV(path: string): Promise<string[][]> {
-  // This initial block of code reads from a file in Node.js. The "rl"
-  // value can be iterated over in a "for" loop. 
+
+// takes in a zod schema with generic output type (to be defined by user), returns either output type array, string array array, or error
+export async function parseCSV<T>(path: string, schema?: ZodType<T>): Promise<T[] | string[][] | Error> {
+  // This initial block of code reads from a file in Node.js. 
   const fileStream = fs.createReadStream(path);
   const rl = readline.createInterface({
     input: fileStream,
     crlfDelay: Infinity, // handle different line endings
   });
-  
-  // Create an empty array to hold the results
-  let result = []
-  
-  // We add the "await" here because file I/O is asynchronous. 
-  // We need to force TypeScript to _wait_ for a row before moving on. 
-  // More on this in class soon!
-  for await (const line of rl) {
-    const values = line.split(",").map((v) => v.trim());
-    result.push(values)
+
+  // if no schema provided, or schema undefined, return array of string arrays
+  if (!schema) {   
+    let result = [];
+  // Loop over each line in the file.
+    for await (const line of rl) {
+      // Split the line by commas and trim whitespace. Values is an array of strings.
+      const values = line.split(",").map((v) => v.trim());
+      
+      // Add the array of strings to the result array.
+      result.push(values);    
+    }
+    return result;
   }
-  return result
+  else {
+    // if schema provided, then zod can infer the type from the schema
+    type Row = z.infer<typeof schema>;
+
+    // return type will be array of inferred type
+    let result: Row[] = [];
+
+    // Loop over each line in the file.
+    for await (const line of rl) {
+
+      // Split the line by commas and trim whitespace. Values is an array of strings.
+      const values = line.split(",").map((v) => v.trim());
+
+      // use inputted schema to parse results and cast each row to inferred type
+      const rowResult: z.ZodSafeParseResult<Row> = schema.safeParse(values)
+
+      // if parsing is succesful (meaning the row matches the schema), add to result array
+      if(rowResult.success) {
+        result.push(rowResult.data);
+      }
+      else { // if parsing fails, return an error with the line and the parsing error message
+        return Error(`Parsing error on line "${line}": ${rowResult.error.message}`);
+      } 
+    }
+    return result;
+  }
 }
